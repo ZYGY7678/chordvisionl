@@ -43,8 +43,6 @@ export function SongView({
   onDeleteChord: (chordId: string) => void;
   onAddChordAt: (ms: number) => void;
   onEditWord: (word: Word, text: string) => void;
-  simplified: boolean;
-  fontScale: number;
 }) {
   const [openChord, setOpenChord] = useState<string | null>(null);
   const [editingWord, setEditingWord] = useState<string | null>(null);
