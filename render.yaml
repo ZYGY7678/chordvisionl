@@ -15,10 +15,9 @@ services:
     healthCheckPath: /api/health
     autoDeploy: true
     # No "disk:" block on purpose: the free plan does not support one.
-    # /data below is an ordinary folder inside the container, so projects
-    # and uploaded recordings are wiped whenever the service sleeps,
-    # restarts or deploys. The app copes with that: a visitor whose data is
-    # gone simply starts with an empty project list.
+    # /data is only a local working cache. Durable project records live in
+    # Supabase Postgres and original audio files live in private Supabase Storage.
+    # Both services must be configured in the Render dashboard.
     envVars:
       # Generated once by Render and then kept. Do not change it afterwards:
       # that signs every user out and makes stored API keys unreadable.
@@ -28,8 +27,17 @@ services:
         value: production
       - key: CHORDVISION_STORAGE_DIR
         value: /data/storage
+      # Set this in the Render dashboard to the Supabase Postgres URI.
+      # Use postgresql+psycopg://... to select the installed psycopg v3 driver.
       - key: CHORDVISION_DATABASE_URL
-        value: sqlite:////data/chordvision.db
+        sync: false
+      - key: CHORDVISION_SUPABASE_URL
+        value: https://ikgyozgzhjbdmopsaflp.supabase.co
+      - key: CHORDVISION_SUPABASE_STORAGE_BUCKET
+        value: chordvision-audio
+      # Never commit this value. Set it privately in the Render dashboard.
+      - key: CHORDVISION_SUPABASE_SERVICE_ROLE_KEY
+        sync: false
       # One analysis at a time: each one needs a core and a few hundred MB.
       - key: CHORDVISION_ANALYSIS_WORKERS
         value: "1"

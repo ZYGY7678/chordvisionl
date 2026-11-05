@@ -761,6 +761,7 @@ def export_project(project_id: str, fmt: str, font_size: float = 11.0,
     if fmt not in EXPORT_TYPES:
         raise HTTPException(400, f"Unknown export format. Available: "
                                  f"{', '.join(sorted(EXPORT_TYPES))}")
+    font_size = max(8.0, min(18.0, float(font_size)))
     p = _owned_project(project_id, user, session)
     view = song_view(project_id, user, session)
 

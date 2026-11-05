@@ -105,12 +105,18 @@ def _root() -> str:
     return path
 
 
-def path_for(storage_key: str) -> str:
-    """Resolve a storage key to a path, refusing anything that escapes the root."""
+def _local_path_for(storage_key: str) -> str:
+    """Resolve a key to the local cache without attempting a cloud restore."""
     root = _root()
     candidate = os.path.abspath(os.path.join(root, storage_key))
     if not candidate.startswith(root + os.sep):
         raise UploadRejected("Invalid storage key.")
+    return candidate
+
+
+def path_for(storage_key: str) -> str:
+    """Resolve a key, restoring it from private cloud storage when needed."""
+    candidate = _local_path_for(storage_key)
     if not os.path.isfile(candidate) and remote_storage_ready():
         _restore_remote(storage_key, candidate)
     return candidate
@@ -135,7 +141,7 @@ def save_upload(fileobj: BinaryIO, original_name: str,
         raise UploadRejected(f"Unsupported content type: {content_type}")
 
     storage_key = f"{secrets.token_urlsafe(24)}{ext or '.bin'}"
-    dest = path_for(storage_key)
+    dest = _local_path_for(storage_key)
 
     size = 0
     limit = settings.max_upload_bytes
