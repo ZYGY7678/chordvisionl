@@ -90,7 +90,7 @@ export function Song({ settings }: { settings: Settings | null }) {
     try {
       await api.patchChord(id, chordId, { chordName: name });
       await refresh();
-      toast.show("ok", `Chord changed to ${name}`);
+      toast.show("ok", `האקורד שונה ל־${name}`);
     } catch (err) {
       toast.show("error", "לא ניתן לשמור את האקורד",
         err instanceof ApiError ? err.message : String(err));
@@ -103,7 +103,7 @@ export function Song({ settings }: { settings: Settings | null }) {
       await refresh();
       toast.show("ok", "האקורד נמחק");
     } catch (err) {
-      toast.show("error", "Could not delete the chord",
+      toast.show("error", "לא ניתן למחוק את האקורד",
         err instanceof ApiError ? err.message : String(err));
     }
   }
@@ -172,7 +172,7 @@ export function Song({ settings }: { settings: Settings | null }) {
       <div className="mx-auto max-w-2xl px-5 py-16">
         <Link to="/" className="btn-ghost -ms-3 mb-6">
           <ArrowLeft size={16} className="rtl:rotate-180" />
-          Back
+          חזרה
         </Link>
 
         <h1 className="text-2xl font-black text-ink">{project.title}</h1>
@@ -232,7 +232,7 @@ export function Song({ settings }: { settings: Settings | null }) {
   }
 
   // --- ready -----------------------------------------------------------
-  const keyLabel = project.keyTonic ? `${project.keyTonic} ${project.keyMode}` : null;
+  const keyLabel = project.keyTonic ? `${project.keyTonic} ${project.keyMode === "major" ? "מז׳ור" : "מינור"}` : null;
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-4rem)]">
@@ -247,14 +247,14 @@ export function Song({ settings }: { settings: Settings | null }) {
             <h1 className="font-bold text-ink truncate leading-tight">{project.title}</h1>
             <p className="text-xs text-muted">
               {keyLabel && (
-                <span title={`Key confidence ${Math.round((project.keyConfidence ?? 0) * 100)}%`}>
+                <span title={`רמת ודאות בזיהוי הסולם: ${Math.round((project.keyConfidence ?? 0) * 100)}%`}>
                   {keyLabel}
                 </span>
               )}
               {project.tempoBpm && <>  ·  {Math.round(project.tempoBpm)} BPM</>}
               {project.tuningOffsetCents !== null &&
                 Math.abs(project.tuningOffsetCents) > 12 && (
-                  <>  ·  recorded {project.tuningOffsetCents > 0 ? "sharp" : "flat"} by{" "}
+                  <>  ·  ההקלטה גבוהה/נמוכה ב־{" "}
                     {Math.abs(Math.round(project.tuningOffsetCents))} cents</>
                 )}
             </p>
@@ -269,10 +269,10 @@ export function Song({ settings }: { settings: Settings | null }) {
           <button
             className={editMode ? "btn-primary" : "btn-outline"}
             onClick={() => setEditMode((e) => !e)}
-            title={editMode ? "Finish editing" : "Edit chords and words"}
+            title={editMode ? "סיום עריכה" : "עריכת אקורדים ומילים"}
           >
             {editMode ? <Eye size={16} /> : <Pencil size={16} />}
-            <span className="hidden sm:inline">{editMode ? "Done" : "Edit"}</span>
+            <span className="hidden sm:inline">{editMode ? "סיום" : "עריכה"}</span>
           </button>
 
           <button className={simplifiedChords ? "btn-primary" : "btn-outline"} onClick={() => setSimplifiedChords((v) => !v)} title="הצגה פשוטה של האקורדים בלי לשנות את הנתונים המקוריים">{simplifiedChords ? "אקורדים מלאים" : "פישוט אקורדים"}</button>
