@@ -21,7 +21,7 @@ export function Home({
   const [transcribe, setTranscribe] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadFraction, setUploadFraction] = useState(0);
-  const [recent, setהשירים האחרונים] = useState<ProjectSummary[]>([]);
+  const [recent, setRecent] = useState<ProjectSummary[]>([]);
   const navigate = useNavigate();
   const toast = useToast();
 
