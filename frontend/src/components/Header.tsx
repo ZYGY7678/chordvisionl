@@ -22,18 +22,18 @@ export function Header({ onOpenSettings }: { onOpenSettings: () => void }) {
           className={`btn-ghost ${pathname === "/projects" ? "text-ink bg-raised" : ""}`}
         >
           <Library size={17} />
-          <span className="hidden sm:inline">Projects</span>
+          <span className="hidden sm:inline">השירים שלי</span>
         </Link>
 
         <button className="btn-ghost" onClick={onOpenSettings}>
           <SettingsIcon size={17} />
-          <span className="hidden sm:inline">Settings</span>
+          <span className="hidden sm:inline">הגדרות</span>
         </button>
 
         <button
           className="btn-ghost !px-2.5"
           onClick={toggle}
-          aria-label={resolved === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+          aria-label={resolved === "dark" ? "מעבר למצב בהיר" : "מעבר למצב כהה"}
           title={resolved === "dark" ? "Switch to light theme" : "Switch to dark theme"}
         >
           {resolved === "dark" ? <Sun size={17} /> : <Moon size={17} />}

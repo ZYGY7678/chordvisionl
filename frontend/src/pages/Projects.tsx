@@ -18,9 +18,9 @@ export function Projects() {
     try {
       await api.deleteProject(id);
       setProjects((ps) => (ps ?? []).filter((p) => p.id !== id));
-      toast.show("ok", "Project deleted");
+      toast.show("ok", "השיר נמחק");
     } catch (err) {
-      toast.show("error", "Could not delete the project",
+      toast.show("error", "לא ניתן למחוק את השיר",
         err instanceof ApiError ? err.message : String(err));
     }
   }
@@ -28,10 +28,10 @@ export function Projects() {
   return (
     <div className="mx-auto max-w-5xl px-5 py-14">
       <div className="flex items-end gap-4 mb-8">
-        <h1 className="text-3xl font-black text-ink me-auto">Projects</h1>
+        <h1 className="text-3xl font-black text-ink me-auto">השירים שלי</h1>
         <Link to="/" className="btn-primary">
           <Plus size={17} />
-          New song
+          שיר חדש
         </Link>
       </div>
 
@@ -45,11 +45,11 @@ export function Projects() {
 
       {projects?.length === 0 && (
         <div className="panel p-12 text-center">
-          <p className="text-ink font-medium">Nothing here yet</p>
+          <p className="text-ink font-medium">עדיין אין כאן שירים</p>
           <p className="text-sm text-muted mt-1.5">
-            Upload a recording and it will show up here with its chords.
+            מעלים שיר והוא יופיע כאן עם האקורדים שלו.
           </p>
-          <Link to="/" className="btn-primary mt-6">Upload a song</Link>
+          <Link to="/" className="btn-primary mt-6">העלאת שיר</Link>
         </div>
       )}
 

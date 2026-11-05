@@ -21,7 +21,7 @@ export function Home({
   const [transcribe, setTranscribe] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadFraction, setUploadFraction] = useState(0);
-  const [recent, setRecent] = useState<ProjectSummary[]>([]);
+  const [recent, setהשירים האחרונים] = useState<ProjectSummary[]>([]);
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -63,6 +63,12 @@ export function Home({
 
   return (
     <div className="mx-auto max-w-5xl px-5 pb-24">
+      {!health?.persistence?.ready && (
+        <div className="mt-8 panel p-4 text-sm text-muted">
+          <strong className="text-ink">הזיכרון הקבוע עדיין לא הושלם.</strong>
+          <p className="mt-1">כדי שהשירים והמפתח של Gemini יישמרו גם אחרי פריסה מחדש, יש להשלים ב־Render את כתובת מסד הנתונים ואת מפתח האחסון הסודי של Supabase. עד אז האחסון עדיין זמני.</p>
+        </div>
+      )}
       <section className="pt-16 sm:pt-24 pb-10">
         <motion.div
           initial={{ opacity: 0, y: 14 }}
@@ -70,12 +76,10 @@ export function Home({
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
           <h1 className="text-[clamp(2rem,4.6vw,3.1rem)] font-black leading-[1.08] tracking-tight text-ink max-w-[19ch] text-balance">
-            Hear the chords, read the words, both locked to the recording.
+            שומעים את האקורדים, קוראים את המילים — הכול מסונכרן להקלטה.
           </h1>
           <p className="mt-5 text-lg text-muted max-w-[58ch] leading-relaxed">
-            Upload a song and ChordVision works out its harmony from the audio
-            itself, then lays the chord symbols over the lyric where each change
-            actually happens.
+            מעלים שיר ו־ChordVision מזהה את ההרמוניה מתוך השמע, מציב את האקורדים מעל המילים ומסנכרן כל שינוי למקום שבו הוא מתרחש.
           </p>
         </motion.div>
       </section>
@@ -108,12 +112,12 @@ export function Home({
             >
               <div className="pt-4 space-y-4">
                 <label className="block">
-                  <span className="text-sm text-muted">Song title</span>
+                  <span className="text-sm text-muted">שם השיר</span>
                   <input
                     className="field mt-1.5"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="What should this be called?"
+                    placeholder="איך לקרוא לשיר?"
                     disabled={uploading}
                   />
                 </label>
@@ -130,7 +134,7 @@ export function Home({
                         onChange={(e) => setTranscribe(e.target.checked)}
                       />
                       <span className="text-sm font-medium text-ink">
-                        Transcribe the lyrics too
+                        לתמלל גם את המילים
                       </span>
                     </label>
                     <p className="text-xs text-muted mt-1.5 leading-relaxed">
@@ -145,7 +149,7 @@ export function Home({
                             className="text-glow font-medium hover:underline"
                             onClick={onOpenSettings}
                           >
-                            Set that up
+                            הגדרת שירות התמלול
                           </button>
                         </>
                       )}
@@ -167,7 +171,7 @@ export function Home({
                     </>
                   ) : (
                     <>
-                      Analyze this song
+                      נתח את השיר
                       <ArrowRight size={18} className="rtl:rotate-180" />
                     </>
                   )}

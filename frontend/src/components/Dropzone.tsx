@@ -33,12 +33,12 @@ export function Dropzone({
       setProblem(null);
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
       if (formats.length && !formats.includes(ext)) {
-        setProblem(`${file.name} isn't a supported format. Use ${formats.join(", ")}.`);
+        setProblem(`${file.name} אינו בפורמט נתמך. יש לבחור אחד מהפורמטים ${formats.join(", ")}.`);
         return;
       }
       if (file.size > maxBytes) {
         setProblem(
-          `${file.name} is ${formatBytes(file.size)}. The limit is ${formatBytes(maxBytes)}.`,
+          `${file.name} is ${formatBytes(file.size)}. המגבלה היא ${formatBytes(maxBytes)}.`,
         );
         return;
       }
@@ -83,7 +83,7 @@ export function Dropzone({
             {picked.durationMs ? ` · ${formatTime(picked.durationMs)}` : ""}
           </p>
         </div>
-        <button className="btn-ghost !px-2.5" onClick={onClear} aria-label="Remove file">
+        <button className="btn-ghost !px-2.5" onClick={onClear} aria-label="הסרת הקובץ">
           <X size={18} />
         </button>
       </motion.div>
@@ -123,10 +123,10 @@ export function Dropzone({
       >
         <SpectrumBars active={over} height={44} className="w-40 mx-auto mb-7 opacity-80" />
         <p className="text-xl font-bold text-ink">
-          {over ? "Let go to add it" : "Drop a song here"}
+          {over ? "שחררו כדי להוסיף את השיר" : "גררו לכאן שיר"}
         </p>
         <p className="text-muted mt-2">
-          or <span className="text-glow font-medium">choose a file</span> from your device
+          or <span className="text-glow font-medium">בחרו קובץ</span> מהמכשיר
         </p>
         <p className="text-xs text-faint mt-6 font-medium">
           {formats.join("  ")}
