@@ -45,7 +45,7 @@ export function Home({
       navigate(`/song/${res.project.id}`);
     } catch (err) {
       const message = err instanceof ApiError ? err.message : String(err);
-      toast.show("error", "Upload failed", message);
+      toast.show("error", "העלאת השיר נכשלה", message);
       setUploading(false);
     }
   }
@@ -54,9 +54,9 @@ export function Home({
     try {
       await api.deleteProject(id);
       setRecent((r) => r.filter((p) => p.id !== id));
-      toast.show("ok", "Project deleted");
+      toast.show("ok", "השיר נמחק");
     } catch (err) {
-      toast.show("error", "Could not delete the project",
+      toast.show("error", "לא ניתן למחוק את השיר",
         err instanceof ApiError ? err.message : String(err));
     }
   }
@@ -139,7 +139,7 @@ export function Home({
                     </label>
                     <p className="text-xs text-muted mt-1.5 leading-relaxed">
                       {canTranscribe ? (
-                        <>Sends the audio to {settings?.transcriptionProvider} using your own API key.</>
+                        <>השמע נשלח אל {settings?.transcriptionProvider} באמצעות מפתח ה־API שלך.</>
                       ) : (
                         <>
                           Needs a transcription API key and your permission to send the
@@ -166,8 +166,8 @@ export function Home({
                     <>
                       <Loader2 size={18} className="animate-spin" />
                       {uploadFraction < 1
-                        ? `Uploading ${Math.round(uploadFraction * 100)}%`
-                        : "Starting analysis"}
+                        ? `מעלה ${Math.round(uploadFraction * 100)}%`
+                        : "מתחיל בניתוח"}
                     </>
                   ) : (
                     <>
@@ -184,7 +184,7 @@ export function Home({
 
       {recent.length > 0 && (
         <section className="pt-16">
-          <h2 className="text-sm font-bold text-muted mb-4">Recent</h2>
+          <h2 className="text-sm font-bold text-muted mb-4">שירים אחרונים</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <AnimatePresence mode="popLayout">
               {recent.map((p) => (
