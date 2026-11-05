@@ -7,11 +7,9 @@ services:
     # Closest Render region to Israel.
     region: frankfurt
     # Free plan: 512 MB RAM and a shared 0.1 CPU, no persistent disk.
-    # WARNING: the replacement CQT/NNLS recognizer can need about 500 MB by
-    # itself. The web process also uses memory, so some analyses may exceed
-    # the Free instance limit; use a larger instance for reliable longer runs.
-    # That RAM is enough for songs up to about 5 minutes (see
-    # MAX_AUDIO_SECONDS below). The service goes to sleep after 15 minutes
+    # The recognizer uses bounded-memory HPSS, CQT, onset and RMS blocks.
+    # Keep one analysis worker active at a time on the 512 MiB Free instance.
+    # The service goes to sleep after 15 minutes
     # without traffic and wakes on the next visit (about a minute).
     plan: free
     healthCheckPath: /api/health
@@ -35,8 +33,7 @@ services:
       # One analysis at a time: each one needs a core and a few hundred MB.
       - key: CHORDVISION_ANALYSIS_WORKERS
         value: "1"
-      # Memory limit in practice: about 50 MB per minute of audio, on top of
-      # roughly 150 MB for the server itself.
+      # Hard cap for uploaded audio duration on the Free instance.
       - key: CHORDVISION_MAX_AUDIO_SECONDS
         value: "300"
       - key: CHORDVISION_MAX_UPLOAD_BYTES

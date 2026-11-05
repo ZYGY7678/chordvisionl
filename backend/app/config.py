@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     upload_rate_limit_per_hour: int = 30
 
     # --- analysis ---------------------------------------------------------
-    analysis_workers: int = 2
+    analysis_workers: int = 1
     quality_set: str = "sevenths"
     job_retention_hours: int = 72
 

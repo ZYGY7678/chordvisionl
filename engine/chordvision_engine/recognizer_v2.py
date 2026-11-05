@@ -163,20 +163,184 @@ def _note_dictionary(n_notes=72, bpo=36, n_bins=216, decay=0.6, n_harm=10):
     return D
 
 
-def _harmonic_chunked(y: np.ndarray, margin: float, sr: int, chunk_s: float = 30.0, pad_s: float = 2.0):
-    """Harmonic/percussive separation in 30 s pieces (with overlap) -> memory stays small on long songs."""
+def _harmonic_chunked(
+    y: np.ndarray,
+    margin: float,
+    sr: int,
+    chunk_s: float = 8.0,
+    pad_s: float = 1.5,
+    progress: Optional[ProgressFn] = None,
+):
+    """Separate harmonic audio in short overlapping blocks.
+
+    Librosa's HPSS builds several temporary spectrograms. Processing an
+    entire recording at once can exceed the 512 MiB memory limit of a small
+    Render instance, so only one short block is held by the separator at a
+    time. The overlap keeps median-filter edge effects outside the copied
+    portion.
+    """
     import librosa
-    n, chunk, pad = len(y), int(chunk_s * sr), int(pad_s * sr)
-    if n <= chunk + 2 * pad:
-        return librosa.effects.harmonic(y, margin=margin)
+
+    n = int(y.size)
+    chunk = max(1, int(chunk_s * sr))
+    pad = max(0, int(pad_s * sr))
     out = np.empty(n, dtype=np.float32)
-    for start in range(0, n, chunk):
-        a, b = max(0, start - pad), min(n, start + chunk + pad)
-        h = librosa.effects.harmonic(y[a:b], margin=margin)
-        end = min(n, start + chunk)
-        out[start:end] = h[start - a: start - a + (end - start)]
+    starts = list(range(0, n, chunk))
+    total = len(starts)
+
+    for index, start in enumerate(starts, 1):
+        core_end = min(n, start + chunk)
+        a = max(0, start - pad)
+        b = min(n, core_end + pad)
+        block = y[a:b]
+        harmonic = librosa.effects.harmonic(block, margin=margin)
+        left = start - a
+        right = left + (core_end - start)
+        out[start:core_end] = harmonic[left:right]
+        del block, harmonic
+
+        if progress is not None:
+            fraction = index / max(total, 1)
+            progress(
+                "musical_analysis",
+                0.05 + 0.22 * fraction,
+                f"Separating harmonic content: block {index}/{total}",
+            )
+
     return out
 
+
+def _cqt_chunked(
+    y: np.ndarray,
+    sr: int,
+    hop: int,
+    tuning: float,
+    progress: Optional[ProgressFn] = None,
+    chunk_s: float = 12.0,
+    pad_s: float = 2.0,
+) -> np.ndarray:
+    """Compute a time-aligned CQT without materializing a full-song STFT.
+
+    Blocks begin and end on the global hop grid. A two-second context protects
+    the low C2 filters from block edges; only central frames are copied into
+    the final compact float32 matrix.
+    """
+    import librosa
+
+    n_frames = int(y.size // hop) + 1
+    n_bins = 216
+    result = np.empty((n_bins, n_frames), dtype=np.float32)
+    core_frames = max(1, int(round(chunk_s * sr / hop)))
+    pad_frames = max(1, int(round(pad_s * sr / hop)))
+    starts = list(range(0, n_frames, core_frames))
+    total = len(starts)
+
+    f_min = librosa.note_to_hz("C2")
+    for index, start_frame in enumerate(starts, 1):
+        end_frame = min(n_frames, start_frame + core_frames)
+        a_frame = max(0, start_frame - pad_frames)
+        b_frame = min(n_frames, end_frame + pad_frames)
+        a_sample = a_frame * hop
+        b_sample = min(int(y.size), b_frame * hop)
+        block = y[a_sample:b_sample]
+
+        local = np.abs(librosa.cqt(
+            block,
+            sr=sr,
+            hop_length=hop,
+            fmin=f_min,
+            n_bins=n_bins,
+            bins_per_octave=36,
+            tuning=tuning * 3.0,
+        )).astype(np.float32, copy=False)
+
+        local_start = start_frame - a_frame
+        count = end_frame - start_frame
+        local_end = local_start + count
+        if local_end > local.shape[1]:
+            raise RuntimeError(
+                "Chunked CQT returned fewer frames than expected; "
+                "refusing to publish an incomplete chord analysis."
+            )
+        result[:, start_frame:end_frame] = local[:, local_start:local_end]
+        del block, local
+
+        if progress is not None:
+            fraction = index / max(total, 1)
+            progress(
+                "musical_analysis",
+                0.30 + 0.34 * fraction,
+                f"Calculating high-resolution CQT: block {index}/{total}",
+            )
+
+    return result
+
+
+def _onset_strength_chunked(
+    y: np.ndarray,
+    sr: int,
+    hop: int,
+    progress: Optional[ProgressFn] = None,
+    chunk_s: float = 18.0,
+    pad_s: float = 1.0,
+) -> np.ndarray:
+    """Calculate a full-length onset envelope in small mel-spectrogram blocks."""
+    import librosa
+
+    n_frames = int(y.size // hop) + 1
+    out = np.empty(n_frames, dtype=np.float32)
+    core_frames = max(1, int(round(chunk_s * sr / hop)))
+    pad_frames = max(1, int(round(pad_s * sr / hop)))
+    starts = list(range(0, n_frames, core_frames))
+    total = len(starts)
+
+    for index, start_frame in enumerate(starts, 1):
+        end_frame = min(n_frames, start_frame + core_frames)
+        a_frame = max(0, start_frame - pad_frames)
+        b_frame = min(n_frames, end_frame + pad_frames)
+        block = y[a_frame * hop:min(int(y.size), b_frame * hop)]
+        local = librosa.onset.onset_strength(y=block, sr=sr, hop_length=hop)
+
+        local_start = start_frame - a_frame
+        count = end_frame - start_frame
+        available = max(0, min(count, local.size - local_start))
+        if available:
+            out[start_frame:start_frame + available] = local[local_start:local_start + available]
+        if available < count:
+            out[start_frame + available:end_frame] = 0.0
+        del block, local
+
+        if progress is not None:
+            fraction = index / max(total, 1)
+            progress(
+                "musical_analysis",
+                0.66 + 0.25 * fraction,
+                f"Building onset map: block {index}/{total}",
+            )
+
+    return out
+
+
+def _frame_rms_chunked(
+    y: np.ndarray,
+    hop: int,
+    frame_length: int = 2048,
+    batch_frames: int = 512,
+) -> np.ndarray:
+    """Centered RMS with bounded temporary memory (no whole-song frame matrix)."""
+    n_frames = int(y.size // hop) + 1
+    half = frame_length // 2
+    padded = np.pad(np.asarray(y, dtype=np.float32), (half, half), mode="constant")
+    offsets = np.arange(frame_length, dtype=np.int64)
+    out = np.empty(n_frames, dtype=np.float32)
+
+    for first in range(0, n_frames, batch_frames):
+        last = min(n_frames, first + batch_frames)
+        centers = np.arange(first, last, dtype=np.int64) * hop
+        frames = padded[centers[:, None] + offsets[None, :]]
+        out[first:last] = np.sqrt(np.mean(frames * frames, axis=1, dtype=np.float32))
+        del frames
+    return out
 
 def compute_features(
     path: Optional[str] = None,
@@ -217,24 +381,26 @@ def compute_features(
 
     # 1. harmonic part only (removes drums / transients)
     emit("musical_analysis", 0.05, "Separating harmonic content from percussion")
-    y_h = _harmonic_chunked(y, harm_margin, sr)
-    emit("musical_analysis", 0.32, "Harmonic audio isolated")
+    y_h = _harmonic_chunked(y, harm_margin, sr, progress=progress)
+    emit("musical_analysis", 0.28, "Harmonic audio isolated")
 
-    # 2. tuning
-    # Estimate in semitone units so the result represents the full deviation
-    # from A=440 (the 36-bin CQT would otherwise only report a residual within
-    # half of one fine-resolution bin). One semitone is three CQT bins.
-    tuning = float(librosa.estimate_tuning(y=y_h, sr=sr, bins_per_octave=12))
-    emit("musical_analysis", 0.46, "Tuning estimate calculated")
+    # 2. tuning. A representative opening minute is enough for a global
+    # tuning estimate and avoids constructing a full-song pitch track.
+    tuning_probe = y_h[:min(y_h.size, 60 * sr)]
+    tuning = float(librosa.estimate_tuning(y=tuning_probe, sr=sr, bins_per_octave=12))
+    del tuning_probe
+    emit("musical_analysis", 0.30, "Tuning estimate calculated")
 
-    # 3. constant-Q spectrum C2..B7 at 36 bins / octave
-    C = np.abs(librosa.cqt(y_h, sr=sr, hop_length=hop, fmin=librosa.note_to_hz("C2"),
-                           n_bins=216, bins_per_octave=36, tuning=tuning * 3.0))
+    # 3. constant-Q spectrum in short, overlapping blocks. This avoids the
+    # large temporary STFT/filter-bank allocations made by a whole-song CQT.
+    C = _cqt_chunked(y_h, sr, hop, tuning, progress=progress)
     n_frames = C.shape[1]
-    emit("musical_analysis", 0.66, "High-resolution CQT calculated")
+    emit("musical_analysis", 0.65, "High-resolution CQT calculated")
 
-    # 4. beat grid
-    onset_env = librosa.onset.onset_strength(y=y, sr=sr, hop_length=hop)
+    # 4. onset map in small blocks. librosa's default onset-strength path
+    # builds a mel spectrogram; doing that for a five-minute track at once
+    # creates a large temporary matrix on a 512 MiB instance.
+    onset_env = _onset_strength_chunked(y, sr, hop, progress=progress)
     tempo, beats = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr, hop_length=hop, tightness=100)
     tempo = float(np.atleast_1d(tempo)[0])
     beats = np.asarray(beats)
@@ -247,8 +413,11 @@ def compute_features(
     emit("musical_analysis", 1.0, "Beat grid and onset map calculated")
 
     # 5. beat-synchronous spectrum  ->  chroma
-    Cfr = (C ** compress).astype(np.float32)                                # frame-level (for precise timing)
-    spec = librosa.util.sync(C, frames, aggregate=np.mean) ** compress     # (216, T)
+    Cfr = np.power(C, compress).astype(np.float32, copy=False)             # frame-level (for precise timing)
+    spec = librosa.util.sync(C, frames, aggregate=np.mean)                  # (216, T)
+    np.power(spec, compress, out=spec)
+    spec = spec.astype(np.float32, copy=False)
+    del C
     T = spec.shape[1]
     if mode == "nnls":
         # note transcription: spec ~= D @ notes, notes >= 0  (removes overtones explicitly)
@@ -275,7 +444,7 @@ def compute_features(
             if k < 90: bass[pc] += spec[k]
     c_sync, b_sync = chroma, bass
 
-    rms = librosa.feature.rms(y=y_h, hop_length=hop)
+    rms = _frame_rms_chunked(y_h, hop)[None, :]
     r_sync = librosa.util.sync(rms, frames, aggregate=np.mean)[0]
 
     return dict(c_sync=c_sync, b_sync=b_sync, r_sync=r_sync, frames=frames, tempo=tempo,
