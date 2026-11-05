@@ -63,14 +63,14 @@ if ENGINE_PATH not in sys.path:
 # forbids showing a fake percentage, so stages that cannot be measured
 # report no number at all rather than a made-up one.
 STAGES: List[Dict[str, Any]] = [
-    {"id": "upload",            "label": "Upload",                 "measurable": True},
-    {"id": "prepare_audio",     "label": "Preparing audio",        "measurable": True},
-    {"id": "musical_analysis",  "label": "Musical analysis",       "measurable": True},
-    {"id": "chord_detection",   "label": "Chord detection",        "measurable": True},
-    {"id": "transcription",     "label": "Transcribing lyrics",    "measurable": False},
-    {"id": "word_alignment",    "label": "Aligning word timings",  "measurable": True},
-    {"id": "synchronization",   "label": "Syncing chords & lyrics", "measurable": True},
-    {"id": "finalize",          "label": "Preparing the song view", "measurable": True},
+    {"id": "upload",            "label": "העלאת השיר",             "measurable": True},
+    {"id": "prepare_audio",     "label": "הכנת קובץ השמע",         "measurable": True},
+    {"id": "musical_analysis",  "label": "ניתוח מוזיקלי",          "measurable": True},
+    {"id": "chord_detection",   "label": "זיהוי אקורדים",          "measurable": True},
+    {"id": "transcription",     "label": "תמלול המילים",           "measurable": False},
+    {"id": "word_alignment",    "label": "תזמון המילים",           "measurable": True},
+    {"id": "synchronization",   "label": "סנכרון האקורדים והמילים", "measurable": True},
+    {"id": "finalize",          "label": "הכנת תצוגת השיר",         "measurable": True},
 ]
 
 STAGE_WEIGHT = {

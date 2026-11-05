@@ -165,6 +165,11 @@ def health() -> Dict[str, Any]:
             "maxAudioSeconds": settings.max_audio_seconds,
         },
         "supportedFormats": sorted(e.lstrip(".") for e in storage.ALLOWED_EXTENSIONS),
+        "persistence": {
+            "database": "postgres" if get_settings().database_url.startswith(("postgresql://", "postgresql+")) else "temporary",
+            "audioStorage": "supabase" if storage.remote_storage_ready() else "temporary",
+            "ready": get_settings().database_url.startswith(("postgresql://", "postgresql+")) and storage.remote_storage_ready(),
+        },
     }
 
 
@@ -744,7 +749,7 @@ EXPORT_TYPES = {
     "txt": ("text/plain; charset=utf-8", "txt"),
     "md": ("text/markdown; charset=utf-8", "md"),
     "json": ("application/json; charset=utf-8", "json"),
-    "chordpro": ("text/plain; charset=utf-8", "chopro"),
+    "chordpro": ("text/plain; charset=utf-8", "pro"),
     "html": ("text/html; charset=utf-8", "html"),
 }
 
@@ -767,13 +772,15 @@ def export_project(project_id: str, fmt: str, font_size: float = 11.0,
 
     media_type, ext = EXPORT_TYPES[fmt]
     safe = "".join(ch for ch in p.title if ch.isalnum() or ch in " -_") .strip() or "song"
-    disposition = f'attachment; filename="{safe}.{ext}"'
+    from urllib.parse import quote
+    disposition = (f'attachment; filename="song.{ext}"; '
+                   f"filename*=UTF-8''{quote(safe + '.' + ext, safe='')}")
 
     if fmt == "pdf":
         try:
             data = exporters.to_pdf(doc, font_size=font_size)
-        except RuntimeError as exc:
-            raise HTTPException(500, str(exc)) from exc
+        except Exception as exc:
+            raise HTTPException(500, "יצירת PDF נכשלה. נסה פורמט אחר או נסה שוב.") from exc
         return Response(data, media_type=media_type,
                         headers={"Content-Disposition": disposition})
 

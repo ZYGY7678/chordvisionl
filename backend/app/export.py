@@ -539,7 +539,7 @@ def to_html(doc: ExportDocument) -> str:
         meta.append(f"Transposed {doc.transpose_semitones:+d}")
 
     return f"""<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
+<html lang="he" dir="rtl"><head><meta charset="utf-8">
 <title>{esc(doc.title)}</title>
 <style>
   :root {{ --ink:#111; --accent:#1b57d6; }}

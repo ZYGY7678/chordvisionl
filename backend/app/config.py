@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     default so the project runs with no external services."""
 
     storage_dir: str = "./storage"
+    supabase_url: str = ""
+    supabase_service_role_key: str = ""
+    supabase_storage_bucket: str = "chordvision-audio"
     max_upload_bytes: int = 120 * 1024 * 1024      # 120 MB
     max_audio_seconds: float = 20 * 60             # 20 minutes
 

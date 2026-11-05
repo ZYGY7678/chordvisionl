@@ -20,8 +20,8 @@ soundfile==0.13.1
 reportlab>=4.2
 python-bidi>=0.6
 
-# Optional: PostgreSQL instead of the default SQLite
-# psycopg[binary]>=3.2
+# Supabase PostgreSQL persistence
+psycopg[binary]>=3.2
 
 # Tests
 pytest>=8.0

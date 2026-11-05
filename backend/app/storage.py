@@ -12,6 +12,8 @@ from __future__ import annotations
 import os
 import secrets
 import shutil
+from urllib.parse import quote
+import httpx
 from dataclasses import dataclass
 from typing import BinaryIO, Optional, Tuple
 
@@ -45,6 +47,58 @@ class StoredFile:
     channels: int
 
 
+def remote_storage_ready() -> bool:
+    settings = get_settings()
+    return bool(settings.supabase_url.strip() and settings.supabase_service_role_key.strip())
+
+
+def _remote_headers(content_type: Optional[str] = None) -> dict:
+    settings = get_settings()
+    key = settings.supabase_service_role_key
+    headers = {"apikey": key, "Authorization": f"Bearer {key}"}
+    if content_type:
+        headers["Content-Type"] = content_type
+    return headers
+
+
+def _remote_object_url(storage_key: str) -> str:
+    settings = get_settings()
+    base = settings.supabase_url.rstrip("/")
+    bucket = quote(settings.supabase_storage_bucket, safe="")
+    obj = quote(storage_key, safe="")
+    return f"{base}/storage/v1/object/{bucket}/{obj}"
+
+
+def _upload_remote(local_path: str, storage_key: str, content_type: Optional[str]) -> None:
+    if not remote_storage_ready():
+        return
+    headers = _remote_headers(content_type or "application/octet-stream")
+    headers["x-upsert"] = "false"
+    try:
+        with open(local_path, "rb") as fh, httpx.Client(timeout=180.0) as client:
+            response = client.post(_remote_object_url(storage_key), headers=headers, content=fh)
+            response.raise_for_status()
+    except Exception as exc:
+        raise UploadRejected("העלאת השיר לאחסון הקבוע נכשלה. נסה שוב.") from exc
+
+
+def _restore_remote(storage_key: str, destination: str) -> None:
+    if not remote_storage_ready():
+        raise UploadRejected("קובץ השמע אינו זמין באחסון המקומי.")
+    temporary = destination + ".download"
+    try:
+        with httpx.stream("GET", _remote_object_url(storage_key), headers=_remote_headers(), timeout=120.0) as response:
+            response.raise_for_status()
+            with open(temporary, "wb") as out:
+                for chunk in response.iter_bytes(1024 * 1024):
+                    if chunk:
+                        out.write(chunk)
+        os.replace(temporary, destination)
+    except Exception as exc:
+        _remove_quietly(temporary)
+        raise UploadRejected("לא הצלחנו לשחזר את קובץ השיר מהאחסון הקבוע.") from exc
+
+
 def _root() -> str:
     path = os.path.abspath(get_settings().storage_dir)
     os.makedirs(path, exist_ok=True)
@@ -57,6 +111,8 @@ def path_for(storage_key: str) -> str:
     candidate = os.path.abspath(os.path.join(root, storage_key))
     if not candidate.startswith(root + os.sep):
         raise UploadRejected("Invalid storage key.")
+    if not os.path.isfile(candidate) and remote_storage_ready():
+        _restore_remote(storage_key, candidate)
     return candidate
 
 
@@ -132,6 +188,9 @@ def save_upload(fileobj: BinaryIO, original_name: str,
             f"{settings.max_audio_seconds / 60:.0f} minutes."
         )
 
+    # Keep a durable private copy so a fresh Render instance can restore it.
+    _upload_remote(dest, storage_key, content_type)
+
     return StoredFile(
         storage_key=storage_key,
         path=dest,
@@ -146,11 +205,21 @@ def save_upload(fileobj: BinaryIO, original_name: str,
 
 
 def delete(storage_key: str) -> bool:
+    local_removed = False
     try:
         path = path_for(storage_key)
+        local_removed = _remove_quietly(path)
     except UploadRejected:
-        return False
-    return _remove_quietly(path)
+        pass
+    if remote_storage_ready():
+        try:
+            with httpx.Client(timeout=30.0) as client:
+                response = client.delete(_remote_object_url(storage_key), headers=_remote_headers())
+                if response.status_code not in (200, 204, 404):
+                    response.raise_for_status()
+        except Exception:
+            return False
+    return local_removed or remote_storage_ready()
 
 
 def _remove_quietly(path: str) -> bool:
