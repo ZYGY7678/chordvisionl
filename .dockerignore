@@ -1,0 +1,29 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+# Built or installed inside the image
+frontend/node_modules
+frontend/dist
+
+# Runtime data never goes into an image
+storage
+*.db
+*.db-wal
+*.db-shm
+
+__pycache__
+*.pyc
+.pytest_cache
+.venv
+venv
+
+# Not needed to run
+tests
+docs
+Makefile
+run.sh
+DEPLOY_RENDER.md
+render.yaml

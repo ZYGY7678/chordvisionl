@@ -1,0 +1,43 @@
+# Render Blueprint for ChordVision (free plan).
+# In Render: New > Blueprint > pick this repository > Apply.
+services:
+  - type: web
+    name: chordvision
+    runtime: docker
+    # Closest Render region to Israel.
+    region: frankfurt
+    # Free plan: 512 MB RAM and a shared 0.1 CPU, no persistent disk.
+    # WARNING: the replacement CQT/NNLS recognizer can need about 500 MB by
+    # itself. The web process also uses memory, so some analyses may exceed
+    # the Free instance limit; use a larger instance for reliable longer runs.
+    # That RAM is enough for songs up to about 5 minutes (see
+    # MAX_AUDIO_SECONDS below). The service goes to sleep after 15 minutes
+    # without traffic and wakes on the next visit (about a minute).
+    plan: free
+    healthCheckPath: /api/health
+    autoDeploy: true
+    # No "disk:" block on purpose: the free plan does not support one.
+    # /data below is an ordinary folder inside the container, so projects
+    # and uploaded recordings are wiped whenever the service sleeps,
+    # restarts or deploys. The app copes with that: a visitor whose data is
+    # gone simply starts with an empty project list.
+    envVars:
+      # Generated once by Render and then kept. Do not change it afterwards:
+      # that signs every user out and makes stored API keys unreadable.
+      - key: CHORDVISION_SECRET_KEY
+        generateValue: true
+      - key: CHORDVISION_ENVIRONMENT
+        value: production
+      - key: CHORDVISION_STORAGE_DIR
+        value: /data/storage
+      - key: CHORDVISION_DATABASE_URL
+        value: sqlite:////data/chordvision.db
+      # One analysis at a time: each one needs a core and a few hundred MB.
+      - key: CHORDVISION_ANALYSIS_WORKERS
+        value: "1"
+      # Memory limit in practice: about 50 MB per minute of audio, on top of
+      # roughly 150 MB for the server itself.
+      - key: CHORDVISION_MAX_AUDIO_SECONDS
+        value: "300"
+      - key: CHORDVISION_MAX_UPLOAD_BYTES
+        value: "62914560"

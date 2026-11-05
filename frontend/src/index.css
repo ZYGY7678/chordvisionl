@@ -1,0 +1,141 @@
+@import "./fonts.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Palette: a dim control room.
+
+  The base is a deep indigo rather than a tinted near-black, and the one
+  bright colour is the amber of a valve glowing behind a grille. Chord
+  symbols get that amber because the chords are the product; everything
+  else is deliberately quiet so they are the thing the eye lands on.
+
+  Light mode is not the dark tokens inverted. It is a paper chord sheet:
+  near-white, with the same amber darkened enough to stay readable on it.
+*/
+:root,
+[data-theme="dark"] {
+  --base: 23 21 49;         /* #171531 deep indigo */
+  --surface: 32 29 63;      /* #201D3F */
+  --raised: 42 38 80;       /* #2A2650 */
+  --line: 58 53 104;        /* #3A3568 */
+  --ink: 237 235 250;       /* #EDEBFA */
+  --muted: 166 161 199;     /* #A6A1C7 */
+  --faint: 118 113 158;     /* #76719E */
+  --glow: 242 181 68;       /* #F2B544 valve amber */
+  --glow-soft: 120 86 28;
+  --signal: 94 219 190;     /* #5EDBBE  used only for "measured, confident" */
+  --warn: 240 165 84;
+  --danger: 244 109 117;
+  --grid: 255 255 255;
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --base: 246 245 251;      /* #F6F5FB */
+  --surface: 255 255 255;
+  --raised: 240 238 249;
+  --line: 215 211 234;
+  --ink: 25 22 54;          /* #191636 */
+  --muted: 92 86 132;
+  --faint: 140 134 176;
+  --glow: 170 108 10;       /* darkened so it passes contrast on paper */
+  --glow-soft: 249 231 194;
+  --signal: 22 140 115;
+  --warn: 176 104 14;
+  --danger: 196 48 60;
+  --grid: 23 21 49;
+  color-scheme: light;
+}
+
+* { -webkit-tap-highlight-color: transparent; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: rgb(var(--base));
+  color: rgb(var(--ink));
+  font-family: "Heebo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-feature-settings: "tnum" 0;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* The faint vertical rule behind the hero: twelve lines for twelve pitch
+   classes, which is literally what the engine measures. It is the only
+   decorative element on the page and it means something. */
+.chroma-grid {
+  background-image: repeating-linear-gradient(
+    to right,
+    rgb(var(--grid) / 0.05) 0 1px,
+    transparent 1px calc(100% / 12)
+  );
+}
+
+::selection { background: rgb(var(--glow) / 0.3); color: rgb(var(--ink)); }
+
+:focus-visible {
+  outline: 2px solid rgb(var(--glow));
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Scrollbars, so the dark theme does not get a bright system scrollbar
+   cutting through it. */
+* { scrollbar-width: thin; scrollbar-color: rgb(var(--line)) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background: rgb(var(--line)); border-radius: 99px;
+  border: 3px solid transparent; background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover { background-color: rgb(var(--faint)); background-clip: content-box; }
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5
+           text-sm font-medium transition-colors duration-150
+           disabled:opacity-40 disabled:pointer-events-none select-none;
+  }
+  .btn-primary {
+    @apply btn bg-glow text-[rgb(var(--base))] hover:brightness-110 active:brightness-95 font-bold;
+  }
+  .btn-ghost {
+    @apply btn text-muted hover:text-ink hover:bg-raised;
+  }
+  .btn-outline {
+    @apply btn border border-line text-ink hover:bg-raised;
+  }
+  .btn-danger {
+    @apply btn text-danger hover:bg-danger/10;
+  }
+  .panel {
+    @apply bg-surface border border-line rounded-xl2;
+  }
+  .field {
+    @apply w-full bg-base border border-line rounded-xl px-3.5 py-2.5 text-sm
+           text-ink placeholder:text-faint
+           focus:border-glow focus:outline-none transition-colors;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs
+           bg-raised text-muted border border-line;
+  }
+  .chord-type {
+    @apply font-chord font-bold tracking-tight text-glow;
+  }
+}
+
+/* Honour the operating system's reduced-motion setting, as the brief
+   requires. Everything still works, it just stops moving. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
