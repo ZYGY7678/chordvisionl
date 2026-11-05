@@ -2,7 +2,7 @@
 Chord recognition engine
 ========================
 Pipeline:
-  1. Load audio (mono, 22.05 kHz)
+  1. Load audio (mono, 11.025 kHz)
   2. Harmonic/percussive separation  -> drums stop polluting the chroma
   3. Tuning estimation               -> songs that are not tuned to A=440 still work
   4. High-resolution CQT chroma (36 bins/octave) for the full range + a separate "bass chroma"
@@ -193,7 +193,11 @@ def _harmonic_chunked(
         a = max(0, start - pad)
         b = min(n, core_end + pad)
         block = y[a:b]
-        harmonic = librosa.effects.harmonic(block, margin=margin)
+        frame_length = max(512, int(round(2048 * sr / 22050)))
+        hpss_hop = max(128, frame_length // 4)
+        harmonic = librosa.effects.harmonic(
+            block, margin=margin, n_fft=frame_length, hop_length=hpss_hop
+        )
         left = start - a
         right = left + (core_end - start)
         out[start:core_end] = harmonic[left:right]
@@ -299,7 +303,10 @@ def _onset_strength_chunked(
         a_frame = max(0, start_frame - pad_frames)
         b_frame = min(n_frames, end_frame + pad_frames)
         block = y[a_frame * hop:min(int(y.size), b_frame * hop)]
-        local = librosa.onset.onset_strength(y=block, sr=sr, hop_length=hop)
+        frame_length = max(512, int(round(2048 * sr / 22050)))
+        local = librosa.onset.onset_strength(
+            y=block, sr=sr, hop_length=hop, n_fft=frame_length
+        )
 
         local_start = start_frame - a_frame
         count = end_frame - start_frame
@@ -320,6 +327,70 @@ def _onset_strength_chunked(
 
     return out
 
+
+
+def _estimate_beats_low_memory(
+    onset_env: np.ndarray,
+    sr: int,
+    hop: int,
+    min_bpm: float = 40.0,
+    max_bpm: float = 220.0,
+) -> tuple[float, np.ndarray]:
+    """Estimate a global beat period and phase using a compact autocorrelation.
+
+    librosa.beat.beat_track constructs a dense tempogram whose temporary
+    allocations can exceed a 512 MiB container for long recordings. The
+    autocorrelation below needs only O(N) memory and the search is restricted
+    to musically useful beat periods. It returns frame indices on the same
+    analysis grid used by the chord synchronizer.
+    """
+    from scipy.fft import next_fast_len, rfft, irfft
+    from scipy.signal import find_peaks
+
+    env = np.asarray(onset_env, dtype=np.float32).reshape(-1)
+    if env.size < 8 or not np.any(env):
+        period = max(1, int(round((sr / hop) * 0.5)))
+        return 120.0, np.arange(0, env.size, period, dtype=np.int64)
+
+    # Remove the DC component and weak background activity before measuring
+    # periodicity. A small non-negative floor is useful for quiet recordings.
+    floor = float(np.percentile(env, 35))
+    signal = np.maximum(env - floor, 0.0).astype(np.float32, copy=False)
+    signal -= np.mean(signal, dtype=np.float64).astype(np.float32)
+
+    fps = float(sr) / float(hop)
+    min_lag = max(2, int(np.floor(fps * 60.0 / max_bpm)))
+    max_lag = min(env.size // 2, int(np.ceil(fps * 60.0 / min_bpm)))
+    if max_lag <= min_lag:
+        period = max(1, int(round(fps * 0.5)))
+        return 120.0, np.arange(0, env.size, period, dtype=np.int64)
+
+    fft_size = next_fast_len(2 * env.size - 1)
+    spectrum = rfft(signal, n=fft_size)
+    ac = irfft(spectrum * np.conjugate(spectrum), n=fft_size)[:max_lag + 1]
+    # Correct for the decreasing overlap at longer lags.
+    lags = np.arange(min_lag, max_lag + 1, dtype=np.int64)
+    scores = ac[min_lag:max_lag + 1] / np.maximum(env.size - lags, 1)
+    peaks, _ = find_peaks(scores)
+    if peaks.size:
+        peak_scores = scores[peaks]
+        strongest = float(np.max(peak_scores))
+        # Exact or near-exact periodic signals often produce equally strong
+        # peaks at the beat and its half-time multiples. Prefer the shorter
+        # period only when the scores are effectively tied; real music with
+        # a pronounced half-time accent can still select the stronger peak.
+        tied = peaks[peak_scores >= strongest * 0.995] if strongest > 0 else peaks
+        best = int(np.min(tied)) + min_lag
+    else:
+        best = int(np.argmax(scores)) + min_lag
+
+    tempo = 60.0 * fps / float(best)
+    # Find the strongest phase in a folded onset envelope.
+    phase_matrix = np.zeros(((env.size + best - 1) // best, best), dtype=np.float32)
+    phase_matrix.reshape(-1)[:env.size] = signal
+    phase = int(np.argmax(np.sum(phase_matrix, axis=0, dtype=np.float64)))
+    beats = np.arange(phase, env.size, best, dtype=np.int64)
+    return float(tempo), beats
 
 def _frame_rms_chunked(
     y: np.ndarray,
@@ -375,7 +446,10 @@ def compute_features(
         raise ValueError("Audio is too short; at least one second is required")
     y = np.nan_to_num(y, nan=0.0, posinf=0.0, neginf=0.0)
     duration = len(y) / sr
-    hop = 512
+    # Keep about 43 analysis frames per second while decoding at 11.025 kHz.
+    # Chord CQT bins only extend to B7 (~2.0 kHz), leaving ample Nyquist
+    # headroom while halving the decoded waveform memory footprint.
+    hop = max(128, int(round(sr / 43.06640625)))
     if samples is None:
         emit("prepare_audio", 1.0, "Audio decoded and prepared")
 
@@ -401,9 +475,7 @@ def compute_features(
     # builds a mel spectrogram; doing that for a five-minute track at once
     # creates a large temporary matrix on a 512 MiB instance.
     onset_env = _onset_strength_chunked(y, sr, hop, progress=progress)
-    tempo, beats = librosa.beat.beat_track(onset_envelope=onset_env, sr=sr, hop_length=hop, tightness=100)
-    tempo = float(np.atleast_1d(tempo)[0])
-    beats = np.asarray(beats)
+    tempo, beats = _estimate_beats_low_memory(onset_env, sr, hop)
     if len(beats) < 4:  # beat tracker failed -> fixed 0.5 s grid
         beats = np.arange(0, n_frames, int(0.5 * sr / hop))
         tempo = 120.0
@@ -444,7 +516,8 @@ def compute_features(
             if k < 90: bass[pc] += spec[k]
     c_sync, b_sync = chroma, bass
 
-    rms = _frame_rms_chunked(y_h, hop)[None, :]
+    rms_frame_length = max(512, int(round(2048 * sr / 22050)))
+    rms = _frame_rms_chunked(y_h, hop, frame_length=rms_frame_length)[None, :]
     r_sync = librosa.util.sync(rms, frames, aggregate=np.mean)[0]
 
     return dict(c_sync=c_sync, b_sync=b_sync, r_sync=r_sync, frames=frames, tempo=tempo,

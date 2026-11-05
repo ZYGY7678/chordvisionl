@@ -16,6 +16,7 @@ from chordvision_engine.recognizer_v2 import (  # noqa: E402
     _cqt_chunked,
     _onset_strength_chunked,
     _frame_rms_chunked,
+    _estimate_beats_low_memory,
 )
 
 
@@ -68,8 +69,22 @@ def main() -> int:
     assert np.isfinite(onset).all() and np.isfinite(rms).all()
     assert len(onset_progress) > 1
 
+    # A periodic onset envelope should recover a known tempo without
+    # building librosa's memory-heavy dense tempogram.
+    low_sr, low_hop = 11025, 256
+    fps = low_sr / low_hop
+    beat_period = int(round(fps * 60.0 / 100.0))
+    synthetic_onsets = np.zeros(int(30 * fps), dtype=np.float32)
+    synthetic_onsets[np.arange(5, synthetic_onsets.size, beat_period)] = 1.0
+    tempo, beat_frames = _estimate_beats_low_memory(
+        synthetic_onsets, low_sr, low_hop
+    )
+    assert abs(tempo - 100.0) < 4.0, tempo
+    assert beat_frames.size > 20
+
     print("PASS  HPSS, CQT, onset and RMS operate in bounded blocks")
     print("PASS  chunked CQT matches the whole-signal reference within tolerance")
+    print("PASS  low-memory beat tracker recovers a 100 BPM grid")
     print("PASS  progress is emitted while long stages are still running")
     return 0
 

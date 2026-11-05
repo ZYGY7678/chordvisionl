@@ -24,7 +24,7 @@ ENGINE_VERSION = "2.0.0"
 class EngineConfig:
     """Settings for the replacement recognizer."""
     quality_set: str = "sevenths"
-    sample_rate: int = 22050
+    sample_rate: int = 11025
     max_duration_s: Optional[float] = 300.0
     mode: str = "nnls"
     slash_chords: bool = True
@@ -141,7 +141,8 @@ class ChordEngine:
             max(0, min(duration_ms, int(round(float(t) * 1000.0))))
             for t in (result.onsets or [])
         ]
-        frame_rate_hz = cfg.sample_rate / 512.0
+        analysis_hop = max(128, int(round(cfg.sample_rate / 43.06640625)))
+        frame_rate_hz = cfg.sample_rate / analysis_hop
 
         return {
             "chords": chords,
