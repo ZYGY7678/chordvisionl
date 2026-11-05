@@ -25,7 +25,7 @@ export function Song({ settings }: { settings: Settings | null }) {
   const [song, setSong] = useState<SongViewData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
-  const [simplifiedChords, setSimplifiedChords] = useState(() => localStorage.getItem("chordvision.simplified") === "true");
+  const [simplifiedChords, setSimplifiedChords] = useState(() => localStorage.getItem("chordvision.simplified") !== "false");
   const [fontScale, setFontScale] = useState(() => { const saved = Number(localStorage.getItem("chordvision.sheetScale") ?? "1"); return Number.isFinite(saved) ? Math.min(1.6, Math.max(0.8, saved)) : 1; });
   useEffect(() => { localStorage.setItem("chordvision.simplified", String(simplifiedChords)); }, [simplifiedChords]);
   useEffect(() => { localStorage.setItem("chordvision.sheetScale", String(fontScale)); }, [fontScale]);
@@ -239,7 +239,7 @@ export function Song({ settings }: { settings: Settings | null }) {
       <div className="border-b border-line bg-base/85 backdrop-blur-xl sticky top-16 z-30">
         <div className="mx-auto max-w-5xl px-5 py-3 flex items-center gap-3 flex-wrap">
           <button onClick={() => navigate("/")} className="btn-ghost !px-2 -ms-2"
-                  aria-label="Back">
+                  aria-label="חזרה">
             <ArrowLeft size={18} className="rtl:rotate-180" />
           </button>
 
@@ -255,7 +255,7 @@ export function Song({ settings }: { settings: Settings | null }) {
               {project.tuningOffsetCents !== null &&
                 Math.abs(project.tuningOffsetCents) > 12 && (
                   <>  ·  ההקלטה גבוהה/נמוכה ב־{" "}
-                    {Math.abs(Math.round(project.tuningOffsetCents))} cents</>
+                    {Math.abs(Math.round(project.tuningOffsetCents))} סנט</>
                 )}
             </p>
           </div>
