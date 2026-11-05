@@ -168,7 +168,8 @@ export function SongView({
                           autoFocus
                           defaultValue={word.text}
                           dir={dir}
-                          className="field !py-0.5 !px-2 !text-xl w-[9ch]"
+                          style={{ fontSize: `${1.25 * fontScale}rem` }}
+                          className="field !py-0.5 !px-2 w-[9ch]"
                           onBlur={(e) => {
                             if (e.target.value !== word.text) onEditWord(word, e.target.value);
                             setEditingWord(null);
@@ -227,6 +228,8 @@ function ChordChip({
   active: boolean;
   notation: "sharps" | "flats";
   editable: boolean;
+  simplified: boolean;
+  fontScale: number;
   open: boolean;
   inline?: boolean;
   positioned?: "rtl" | "ltr";
