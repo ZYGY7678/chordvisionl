@@ -60,21 +60,21 @@ export function Player({
             className="btn-primary !px-3.5 !py-2.5 !rounded-full"
             onClick={player.toggle}
             disabled={!player.ready}
-            aria-label={player.playing ? "Pause" : "Play"}
+            aria-label={player.playing ? "השהיה" : "ניגון"}
           >
             {player.playing ? <Pause size={18} /> : <Play size={18} className="translate-x-px" />}
           </button>
 
           <button className="btn-ghost !px-2.5" onClick={player.stop}
-                  disabled={!player.ready} aria-label="Stop">
+                  disabled={!player.ready} aria-label="עצירה">
             <Square size={16} />
           </button>
           <button className="btn-ghost !px-2.5" onClick={() => player.nudge(-5000)}
-                  disabled={!player.ready} aria-label="Back 5 seconds" title="Back 5 seconds">
+                  disabled={!player.ready} aria-label="אחורה 5 שניות" title="אחורה 5 שניות">
             <RotateCcw size={16} />
           </button>
           <button className="btn-ghost !px-2.5" onClick={() => player.nudge(5000)}
-                  disabled={!player.ready} aria-label="Forward 5 seconds" title="Forward 5 seconds">
+                  disabled={!player.ready} aria-label="קדימה 5 שניות" title="קדימה 5 שניות">
             <RotateCw size={16} />
           </button>
 
@@ -90,12 +90,12 @@ export function Player({
                 onClick={() => player.setLoop(null)}
               >
                 <Repeat size={12} />
-                Loop {formatTime(player.loop.startMs)}–{formatTime(player.loop.endMs)}
+                חזרה {formatTime(player.loop.startMs)}–{formatTime(player.loop.endMs)}
                 <X size={12} />
               </button>
             ) : (
               <span className="hidden md:inline text-xs text-faint">
-                shift-drag the waveform to loop a section
+                גררו עם Shift על צורת הגל כדי לחזור על קטע
               </span>
             )}
 
@@ -115,7 +115,7 @@ export function Player({
             </div>
 
             <button className="btn-ghost !px-2.5" onClick={player.toggleMute}
-                    aria-label={player.muted ? "Unmute" : "Mute"}>
+                    aria-label={player.muted ? "ביטול השתקה" : "השתקה"}>
               {player.muted ? <VolumeX size={16} /> : <Volume2 size={16} />}
             </button>
             <input
@@ -124,7 +124,7 @@ export function Player({
               value={player.muted ? 0 : player.volume}
               onChange={(e) => player.setVolume(Number(e.target.value))}
               className="w-20 accent-[rgb(var(--glow))]"
-              aria-label="Volume"
+              aria-label="עוצמת שמע"
             />
           </div>
         </div>

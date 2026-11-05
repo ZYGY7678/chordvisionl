@@ -59,8 +59,8 @@ export function ProjectCard({
           )}
           {!busy && !failed && (
             <>
-              <span className="chip">{project.chordCount} chords</span>
-              {project.hasLyrics && <span className="chip">lyrics</span>}
+              <span className="chip">{project.chordCount} אקורדים</span>
+              {project.hasLyrics && <span className="chip">מילים</span>}
             </>
           )}
           <span className="text-xs text-faint ms-auto">{formatDate(project.createdAt)}</span>
@@ -74,7 +74,7 @@ export function ProjectCard({
         }}
         className="absolute top-4 end-4 p-2 rounded-lg text-faint opacity-0 group-hover:opacity-100
                    focus-visible:opacity-100 hover:text-danger hover:bg-danger/10 transition"
-        aria-label={`Delete ${project.title}`}
+        aria-label={`מחיקת ${project.title}`}
       >
         <Trash2 size={15} />
       </button>

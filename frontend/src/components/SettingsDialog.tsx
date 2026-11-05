@@ -56,9 +56,9 @@ export function SettingsDialog({
     try {
       const res = await api.verifyKey(provider, apiKey);
       toast.show(res.valid ? "ok" : "error",
-        res.valid ? "Key verified" : "Key rejected", res.message);
+        res.valid ? "המפתח תקין" : "המפתח נדחה", res.message);
     } catch (err) {
-      toast.show("error", "Could not check the key",
+      toast.show("error", "לא ניתן לבדוק את המפתח",
         err instanceof ApiError ? err.message : String(err));
     } finally {
       setChecking(false);
@@ -77,10 +77,10 @@ export function SettingsDialog({
       });
       onSaved(next);
       setApiKey("");
-      toast.show("ok", "Settings saved");
+      toast.show("ok", "ההגדרות נשמרו");
       onClose();
     } catch (err) {
-      toast.show("error", "Could not save settings",
+      toast.show("error", "לא ניתן לשמור את ההגדרות",
         err instanceof ApiError ? err.message : String(err));
     } finally {
       setSaving(false);
@@ -92,9 +92,9 @@ export function SettingsDialog({
       await api.deleteApiKey();
       const next = await api.getSettings();
       onSaved(next);
-      toast.show("ok", "API key removed");
+      toast.show("ok", "מפתח ה־API הוסר");
     } catch (err) {
-      toast.show("error", "Could not remove the key",
+      toast.show("error", "לא ניתן להסיר את המפתח",
         err instanceof ApiError ? err.message : String(err));
     }
   }
@@ -110,7 +110,7 @@ export function SettingsDialog({
             onClick={onClose}
           />
           <motion.div
-            role="dialog" aria-modal="true" aria-label="Settings"
+            role="dialog" aria-modal="true" aria-label="הגדרות"
             initial={{ opacity: 0, y: 16, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.985 }}
@@ -120,17 +120,17 @@ export function SettingsDialog({
                        panel shadow-deep z-[61] flex flex-col overflow-hidden"
           >
             <div className="flex items-center gap-3 px-5 py-4 border-b border-line">
-              <h2 className="text-lg font-bold text-ink me-auto">Settings</h2>
-              <button className="btn-ghost !px-2" onClick={onClose} aria-label="Close settings">
+              <h2 className="text-lg font-bold text-ink me-auto">הגדרות</h2>
+              <button className="btn-ghost !px-2" onClick={onClose} aria-label="סגירת ההגדרות">
                 <X size={18} />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-5 space-y-7">
               <section>
-                <h3 className="text-sm font-bold text-ink mb-1">Appearance</h3>
+                <h3 className="text-sm font-bold text-ink mb-1">מראה</h3>
                 <p className="text-xs text-muted mb-3">
-                  Dark is the default; the song view was designed in it.
+                  מצב כהה הוא ברירת המחדל. תצוגת השיר מותאמת אליו.
                 </p>
                 <div className="flex gap-1.5">
                   {(["dark", "light", "system"] as Theme[]).map((t) => (
@@ -142,16 +142,16 @@ export function SettingsDialog({
                                     ? "bg-raised border-glow/50 text-ink font-bold"
                                     : "bg-base border-line text-muted hover:text-ink"}`}
                     >
-                      {t}
+                      {t === "dark" ? "כהה" : t === "light" ? "בהיר" : "לפי המכשיר"}
                     </button>
                   ))}
                 </div>
               </section>
 
               <section>
-                <h3 className="text-sm font-bold text-ink mb-1">Chord spelling</h3>
+                <h3 className="text-sm font-bold text-ink mb-1">כתיבת אקורדים</h3>
                 <p className="text-xs text-muted mb-3">
-                  Whether a black key reads as A# or B♭ everywhere in the app.
+                  איך לכתוב צלילים שחורים בכל האתר: A# או B♭.
                 </p>
                 <div className="flex gap-1.5">
                   {(["sharps", "flats"] as const).map((n) => (
@@ -163,27 +163,26 @@ export function SettingsDialog({
                                     ? "bg-raised border-glow/50 text-ink font-bold"
                                     : "bg-base border-line text-muted hover:text-ink"}`}
                     >
-                      {n === "sharps" ? "Sharps (A#)" : "Flats (B♭)"}
+                      {n === "sharps" ? "דיאזים (A#)" : "במולים (B♭)"}
                     </button>
                   ))}
                 </div>
               </section>
 
               <section>
-                <h3 className="text-sm font-bold text-ink mb-1">Lyric transcription</h3>
+                <h3 className="text-sm font-bold text-ink mb-1">תמלול מילים</h3>
                 <p className="text-xs text-muted mb-3 leading-relaxed">
-                  Chord detection runs entirely on this server. Transcription does
-                  not: it needs an outside service and an API key you supply.
+                  זיהוי האקורדים מתבצע בשרת הזה. תמלול המילים נעשה באמצעות שירות חיצוני ומפתח API שלך.
                 </p>
 
                 <label className="block mb-3">
-                  <span className="text-xs text-muted">Service</span>
+                  <span className="text-xs text-muted">שירות תמלול</span>
                   <select
                     className="field mt-1"
                     value={provider}
                     onChange={(e) => setProvider(e.target.value)}
                   >
-                    <option value="">None — chords only</option>
+                    <option value="">ללא — אקורדים בלבד</option>
                     {providers.map((p) => (
                       <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
@@ -199,7 +198,7 @@ export function SettingsDialog({
                           {" "}
                           <a href={selected.docsUrl} target="_blank" rel="noreferrer"
                              className="text-glow hover:underline inline-flex items-center gap-0.5">
-                            Where to get a key <ExternalLink size={11} />
+                            איפה מקבלים מפתח <ExternalLink size={11} />
                           </a>
                         </>
                       )}
@@ -207,9 +206,9 @@ export function SettingsDialog({
 
                     <label className="block">
                       <span className="text-xs text-muted">
-                        API key {settings?.apiKeySet && (
+                        מפתח API {settings?.apiKeySet && (
                           <span className="text-faint">
-                            — one is saved ({settings.apiKeyHint}); typing replaces it
+                            — מפתח שמור ({settings.apiKeyHint}); הקלדה חדשה תחליף אותו
                           </span>
                         )}
                       </span>
@@ -226,12 +225,12 @@ export function SettingsDialog({
                         <div className="absolute inset-y-0 end-1.5 flex items-center gap-0.5">
                           <button className="btn-ghost !px-2 !py-1.5"
                                   onClick={() => setShowKey((s) => !s)}
-                                  aria-label={showKey ? "Hide the key" : "Show the key"}>
+                                  aria-label={showKey ? "הסתרת המפתח" : "הצגת המפתח"}>
                             {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
                           </button>
                           <button className="btn-ghost !px-2 !py-1.5"
                                   onClick={verify} disabled={!apiKey || checking}
-                                  title="Check this key works">
+                                  title="בדיקת תקינות המפתח">
                             {checking
                               ? <Loader2 size={15} className="animate-spin" />
                               : <ShieldCheck size={15} />}
@@ -242,25 +241,23 @@ export function SettingsDialog({
 
                     <p className="text-xs text-faint mt-2 flex items-start gap-1.5 leading-relaxed">
                       <Lock size={12} className="mt-0.5 shrink-0" />
-                      The key is encrypted on the server. It is never sent back to
-                      this page, never written to a log, and never stored in your
-                      browser.
+                      המפתח מוצפן בשרת. הוא אינו נשלח בחזרה לדפדפן, אינו נכתב ליומני השרת ואינו נשמר במכשיר.
                     </p>
 
                     {settings?.apiKeySet && (
                       <button className="btn-danger !px-2 !py-1.5 mt-2 text-xs" onClick={removeKey}>
                         <Trash2 size={13} />
-                        Remove the saved key
+                        הסרת המפתח השמור
                       </button>
                     )}
 
                     <label className="block mt-4">
-                      <span className="text-xs text-muted">Lyric language</span>
+                      <span className="text-xs text-muted">שפת המילים</span>
                       <input
                         className="field mt-1"
                         value={language}
                         onChange={(e) => setLanguage(e.target.value)}
-                        placeholder="auto-detect — or he, en, es…"
+                        placeholder="זיהוי אוטומטי — או he, en, es…"
                       />
                     </label>
 
@@ -273,11 +270,10 @@ export function SettingsDialog({
                       />
                       <span>
                         <span className="block text-sm text-ink font-medium">
-                          Allow sending audio to {selected.name}
+                          אישור שליחת השמע אל {selected.name}
                         </span>
                         <span className="block text-xs text-muted mt-0.5 leading-relaxed">
-                          Required for transcription. Your recording leaves this
-                          server and goes to them. Chord detection never does.
+                          נדרש לתמלול. ההקלטה תישלח לשירות החיצוני; זיהוי האקורדים נשאר בשרת הזה.
                         </span>
                       </span>
                     </label>
@@ -287,10 +283,10 @@ export function SettingsDialog({
             </div>
 
             <div className="px-5 py-4 border-t border-line flex gap-2">
-              <button className="btn-ghost" onClick={onClose}>Cancel</button>
+              <button className="btn-ghost" onClick={onClose}>ביטול</button>
               <button className="btn-primary flex-1" onClick={save} disabled={saving}>
                 {saving && <Loader2 size={15} className="animate-spin" />}
-                Save settings
+                שמירת הגדרות
               </button>
             </div>
           </motion.div>

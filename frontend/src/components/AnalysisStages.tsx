@@ -62,7 +62,7 @@ export function AnalysisStages({
 
               {state === "running" && (
                 <span className="text-xs text-muted truncate max-w-[14rem] text-end">
-                  {stage.measurable ? progress?.message : "working…"}
+                  {stage.measurable ? progress?.message : "בעבודה…"}
                 </span>
               )}
             </motion.div>

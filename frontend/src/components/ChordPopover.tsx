@@ -68,7 +68,7 @@ export function ChordPopover({
       <div className="flex items-baseline gap-2 mb-3">
         <span className="chord-type text-2xl">{preview}</span>
         <span className="text-xs text-faint ms-auto">
-          engine confidence {Math.round(confidence * 100)}%
+          רמת ודאות הזיהוי {Math.round(confidence * 100)}%
         </span>
       </div>
 
@@ -102,20 +102,20 @@ export function ChordPopover({
       </div>
 
       <label className="flex items-center gap-2 mb-3">
-        <span className="text-xs text-muted w-20">Bass note</span>
+        <span className="text-xs text-muted w-20">צליל בס</span>
         <select
           className="field !py-1.5 !text-sm flex-1"
           value={bass ?? ""}
           onChange={(e) => setBass(e.target.value || null)}
         >
-          <option value="">same as root</option>
+          <option value="">כמו צליל הבסיס</option>
           {notes.map((n) => <option key={n} value={n}>{n}</option>)}
         </select>
       </label>
 
       {alternatives.length > 0 && (
         <div className="mb-3 pt-3 border-t border-line">
-          <p className="text-xs text-muted mb-2">The engine also considered</p>
+          <p className="text-xs text-muted mb-2">אפשרויות נוספות שהמנוע שקל</p>
           <div className="flex flex-wrap gap-1.5">
             {alternatives.map((a) => (
               <button
@@ -137,9 +137,9 @@ export function ChordPopover({
       <div className="flex gap-2">
         <button className="btn-primary flex-1" onClick={() => onSave(preview)}>
           <Check size={15} />
-          Save chord
+          שמירת האקורד
         </button>
-        <button className="btn-danger !px-3" onClick={onDelete} aria-label="Delete chord">
+        <button className="btn-danger !px-3" onClick={onDelete} aria-label="מחיקת האקורד">
           <Trash2 size={15} />
         </button>
       </div>
