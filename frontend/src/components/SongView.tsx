@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Plus, Music2 } from "lucide-react";
 import type { SongLine, PlacedChord, Word, ChordAlternative } from "../lib/api";
-import { textDirection, TIMING_SOURCE_LABEL } from "../lib/format";
+import { textDirection, TIMING_SOURCE_LABEL, simplifyChordSymbol } from "../lib/format";
 import { ChordPopover } from "./ChordPopover";
 
 /**
@@ -29,16 +29,22 @@ export function SongView({
   onDeleteChord,
   onAddChordAt,
   onEditWord,
+  simplified,
+  fontScale,
 }: {
   lines: SongLine[];
   positionMs: number;
   notation: "sharps" | "flats";
+  simplified: boolean;
+  fontScale: number;
   editable: boolean;
   onSeek: (ms: number) => void;
   onSaveChord: (chordId: string, name: string) => void;
   onDeleteChord: (chordId: string) => void;
   onAddChordAt: (ms: number) => void;
   onEditWord: (word: Word, text: string) => void;
+  simplified: boolean;
+  fontScale: number;
 }) {
   const [openChord, setOpenChord] = useState<string | null>(null);
   const [editingWord, setEditingWord] = useState<string | null>(null);
@@ -88,7 +94,7 @@ export function SongView({
     return (
       <div className="py-20 text-center">
         <Music2 size={28} className="mx-auto text-faint mb-3" />
-        <p className="text-muted">No chords were found in this recording.</p>
+        <p className="text-muted">לא זוהו אקורדים בהקלטה הזאת.</p>
       </div>
     );
   }
@@ -110,13 +116,15 @@ export function SongView({
           >
             {line.isInstrumental ? (
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2" dir="ltr">
-                <span className="text-xs text-faint shrink-0">instrumental</span>
+                <span className="text-xs text-faint shrink-0">קטע אינסטרומנטלי</span>
                 {line.chords.map((c) => (
                   <ChordChip
                     key={c.chordId}
                     chord={c}
                     active={positionMs >= c.startTimeMs && positionMs < c.endTimeMs}
                     notation={notation}
+                    simplified={simplified}
+                    fontScale={fontScale}
                     editable={editable}
                     open={openChord === c.chordId}
                     onOpen={() => setOpenChord(openChord === c.chordId ? null : c.chordId)}
@@ -143,6 +151,8 @@ export function SongView({
                             chord={c}
                             active={positionMs >= c.startTimeMs && positionMs < c.endTimeMs}
                             notation={notation}
+                            simplified={simplified}
+                            fontScale={fontScale}
                             editable={editable}
                             open={openChord === c.chordId}
                             onOpen={() => setOpenChord(openChord === c.chordId ? null : c.chordId)}
@@ -196,8 +206,8 @@ export function SongView({
                   <button
                     onClick={() => onAddChordAt(line.startTimeMs)}
                     className="self-end mb-1 p-1 rounded-lg text-faint hover:text-glow hover:bg-raised transition"
-                    title="Add a chord to this line"
-                    aria-label="Add a chord to this line"
+                    title="הוספת אקורד לשורה"
+                    aria-label="הוספת אקורד לשורה"
                   >
                     <Plus size={15} />
                   </button>
@@ -212,7 +222,7 @@ export function SongView({
 }
 
 function ChordChip({
-  chord, active, notation, editable, open, inline, positioned,
+  chord, active, notation, simplified, fontScale, editable, open, inline, positioned,
   onOpen, onClose, onSeek, onSave, onDelete,
 }: {
   chord: PlacedChord;
@@ -237,9 +247,10 @@ function ChordChip({
     : { left: `${chord.offsetRatio * 100}%` };
 
   const unsure = chord.confidence < 0.4;
+  const displayName = simplified ? simplifyChordSymbol(chord.chordName) : chord.chordName;
 
   return (
-    <span className={inline ? "relative inline-block" : "absolute"} style={style}>
+    <span className={inline ? "relative inline-block" : "absolute"} style={{ ...style, fontSize: `${fontScale}em` }}>
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -257,7 +268,7 @@ function ChordChip({
                     ${unsure ? "opacity-70" : ""}
                     ${editable ? "hover:bg-glow/15" : ""}`}
       >
-        {chord.chordName}
+        {displayName}
         {unsure && <span className="text-faint align-super text-[0.6em] ms-0.5">?</span>}
       </button>
 

@@ -18,11 +18,11 @@ export function formatDate(iso: string | null): string {
   if (Number.isNaN(d.getTime())) return "";
   const now = Date.now();
   const diff = now - d.getTime();
-  if (diff < 60_000) return "just now";
-  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} min ago`;
-  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} h ago`;
-  if (diff < 7 * 86_400_000) return `${Math.floor(diff / 86_400_000)} d ago`;
-  return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  if (diff < 60_000) return "הרגע";
+  if (diff < 3_600_000) return `לפני ${Math.floor(diff / 60_000)} דקות`;
+  if (diff < 86_400_000) return `לפני ${Math.floor(diff / 3_600_000)} שעות`;
+  if (diff < 7 * 86_400_000) return `לפני ${Math.floor(diff / 86_400_000)} ימים`;
+  return d.toLocaleDateString("he-IL", { day: "numeric", month: "short", year: "numeric" });
 }
 
 const RTL = /[֐-׿؀-ۿ܀-ݏיִ-﷿ﹰ-﻿]/;
@@ -41,16 +41,16 @@ export function textDirection(text: string): "rtl" | "ltr" {
 
 /** How much to trust a confidence figure, in words a musician can act on. */
 export function confidenceBand(c: number): { label: string; tone: "high" | "medium" | "low" } {
-  if (c >= 0.7) return { label: "Confident", tone: "high" };
-  if (c >= 0.4) return { label: "Fairly sure", tone: "medium" };
-  return { label: "Uncertain", tone: "low" };
+  if (c >= 0.7) return { label: "זיהוי בטוח", tone: "high" };
+  if (c >= 0.4) return { label: "זיהוי סביר", tone: "medium" };
+  return { label: "זיהוי לא ודאי", tone: "low" };
 }
 
 export const TIMING_SOURCE_LABEL: Record<string, string> = {
-  provider_word: "Timed by the transcription service",
-  forced_alignment: "Estimated by aligning to the audio",
-  estimated: "Estimated by splitting the phrase",
-  user: "Set by you",
+  provider_word: "תזמון שנקבע על ידי שירות התמלול",
+  forced_alignment: "תזמון שהותאם לשמע",
+  estimated: "תזמון משוער לפי חלוקת המשפט",
+  user: "תזמון שהוגדר ידנית",
 };
 
 export const PITCH_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
@@ -87,4 +87,16 @@ export function splitChord(symbol: string): { root: string; quality: string; bas
 
 export function joinChord(root: string, quality: string, bass: string | null): string {
   return root + quality + (bass && bass !== root ? `/${bass}` : "");
+}
+
+/** Simplifies notation for display only; source chords remain unchanged. */
+export function simplifyChordSymbol(symbol: string): string {
+  const { root, quality, bass } = splitChord(symbol);
+  const q = quality.toLowerCase();
+  let simple = "";
+  if (q.includes("dim") || q.includes("m7b5") || q.includes("ø")) simple = "dim";
+  else if (q.includes("aug") || q.startsWith("+")) simple = "aug";
+  else if (q.startsWith("sus")) simple = "sus";
+  else if (q.startsWith("m") && !q.startsWith("maj")) simple = "m";
+  return root + simple + (bass && bass !== root ? `/${bass}` : "");
 }

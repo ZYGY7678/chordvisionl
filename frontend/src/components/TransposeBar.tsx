@@ -1,65 +1,6 @@
 import { Minus, Plus, RotateCcw } from "lucide-react";
-
 const NAMES = ["C", "C#/Db", "D", "D#/Eb", "E", "F", "F#/Gb", "G", "G#/Ab", "A", "A#/Bb", "B"];
-
-/**
- * Transposition changes the chord names only. The recording is never
- * pitch-shifted, which is why it can be moved up and down freely and
- * returned to zero with nothing lost.
- */
-export function TransposeBar({
-  semitones,
-  originalKey,
-  onChange,
-}: {
-  semitones: number;
-  originalKey: string | null;
-  onChange: (value: number) => void;
-}) {
-  const shiftedKey = (() => {
-    if (!originalKey) return null;
-    const [tonic, mode] = originalKey.split(" ");
-    const idx = NAMES.findIndex((n) => n.split("/").includes(tonic));
-    if (idx < 0) return null;
-    return `${NAMES[(idx + semitones + 120) % 12]} ${mode ?? ""}`.trim();
-  })();
-
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex items-center rounded-xl border border-line bg-base p-0.5">
-        <button
-          className="btn-ghost !px-2 !py-1.5"
-          onClick={() => onChange(Math.max(-12, semitones - 1))}
-          disabled={semitones <= -12}
-          aria-label="Transpose down a semitone"
-        >
-          <Minus size={15} />
-        </button>
-        <span className="px-2 text-sm tabular-nums font-bold text-ink min-w-[3.2rem] text-center">
-          {semitones > 0 ? `+${semitones}` : semitones}
-        </span>
-        <button
-          className="btn-ghost !px-2 !py-1.5"
-          onClick={() => onChange(Math.min(12, semitones + 1))}
-          disabled={semitones >= 12}
-          aria-label="Transpose up a semitone"
-        >
-          <Plus size={15} />
-        </button>
-      </div>
-
-      {semitones !== 0 && (
-        <button className="btn-ghost !px-2 !py-1.5" onClick={() => onChange(0)}
-                title="Back to the original key" aria-label="Back to the original key">
-          <RotateCcw size={14} />
-        </button>
-      )}
-
-      {shiftedKey && (
-        <span className="text-sm text-muted hidden sm:inline">
-          {semitones === 0 ? shiftedKey : <>reading in <span className="text-ink font-medium">{shiftedKey}</span></>}
-        </span>
-      )}
-    </div>
-  );
+export function TransposeBar({ semitones, originalKey, onChange }: { semitones: number; originalKey: string | null; onChange: (value: number) => void; }) {
+  const shiftedKey = (() => { if (!originalKey) return null; const [tonic, mode] = originalKey.split(" "); const idx = NAMES.findIndex((n) => n.split("/").includes(tonic)); if (idx < 0) return null; return `${NAMES[(idx + semitones + 120) % 12]} ${mode ?? ""}`.trim(); })();
+  return <div className="flex items-center gap-2" dir="ltr"><div className="flex items-center rounded-xl border border-line bg-base p-0.5"><button className="btn-ghost !px-2 !py-1.5" onClick={() => onChange(Math.max(-12, semitones - 1))} disabled={semitones <= -12} aria-label="הורדת חצי טון"><Minus size={15} /></button><span className="px-2 text-sm tabular-nums font-bold text-ink min-w-[3.2rem] text-center">{semitones > 0 ? `+${semitones}` : semitones}</span><button className="btn-ghost !px-2 !py-1.5" onClick={() => onChange(Math.min(12, semitones + 1))} disabled={semitones >= 12} aria-label="העלאת חצי טון"><Plus size={15} /></button></div>{semitones !== 0 && <button className="btn-outline !px-2 !py-1.5" onClick={() => onChange(0)} title="חזרה לטון המקורי" aria-label="חזרה לטון המקורי"><RotateCcw size={14} /><span className="text-xs">טון מקורי</span></button>}{shiftedKey && <span className="text-sm text-muted hidden sm:inline" dir="rtl">{semitones === 0 ? `הטון המקורי: ${shiftedKey}` : <>מנוגן בסולם <span className="text-ink font-medium">{shiftedKey}</span></>}</span>}</div>;
 }

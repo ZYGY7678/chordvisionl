@@ -163,6 +163,7 @@ export interface Health {
   stages: Stage[];
   limits: { maxUploadBytes: number; maxAudioSeconds: number };
   supportedFormats: string[];
+  persistence?: { database: "postgres" | "temporary"; audioStorage: "supabase" | "temporary"; ready: boolean };
 }
 
 export interface Provider {
@@ -241,8 +242,8 @@ export const api = {
   song: (projectId: string) => request<SongView>(`/api/projects/${projectId}/song`),
 
   audioUrl: (projectId: string) => `${BASE}/api/projects/${projectId}/audio`,
-  exportUrl: (projectId: string, fmt: string) =>
-    `${BASE}/api/projects/${projectId}/export/${fmt}`,
+  exportUrl: (projectId: string, fmt: string, fontSize?: number) =>
+    `${BASE}/api/projects/${projectId}/export/${fmt}${fontSize ? `?font_size=${encodeURIComponent(String(fontSize))}` : ""}`,
 
   addChord: (projectId: string, body: { chordName: string; startTimeMs: number; endTimeMs: number }) =>
     request<Chord>(`/api/projects/${projectId}/chords`, json("POST", body)),

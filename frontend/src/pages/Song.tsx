@@ -25,6 +25,10 @@ export function Song({ settings }: { settings: Settings | null }) {
   const [song, setSong] = useState<SongViewData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const [simplifiedChords, setSimplifiedChords] = useState(() => localStorage.getItem("chordvision.simplified") === "true");
+  const [fontScale, setFontScale] = useState(() => { const saved = Number(localStorage.getItem("chordvision.sheetScale") ?? "1"); return Number.isFinite(saved) ? Math.min(1.6, Math.max(0.8, saved)) : 1; });
+  useEffect(() => { localStorage.setItem("chordvision.simplified", String(simplifiedChords)); }, [simplifiedChords]);
+  useEffect(() => { localStorage.setItem("chordvision.sheetScale", String(fontScale)); }, [fontScale]);
 
   const analysing =
     project?.status === "analyzing" || project?.status === "uploaded" || !project;
@@ -76,7 +80,7 @@ export function Song({ settings }: { settings: Settings | null }) {
       await api.patchProject(id, { transposeSemitones: value });
       await refresh();
     } catch (err) {
-      toast.show("error", "Could not transpose",
+      toast.show("error", "לא ניתן לשנות את הסולם",
         err instanceof ApiError ? err.message : String(err));
       await refresh();
     }
@@ -88,7 +92,7 @@ export function Song({ settings }: { settings: Settings | null }) {
       await refresh();
       toast.show("ok", `Chord changed to ${name}`);
     } catch (err) {
-      toast.show("error", "Could not save the chord",
+      toast.show("error", "לא ניתן לשמור את האקורד",
         err instanceof ApiError ? err.message : String(err));
     }
   }
@@ -97,7 +101,7 @@ export function Song({ settings }: { settings: Settings | null }) {
     try {
       await api.deleteChord(id, chordId);
       await refresh();
-      toast.show("ok", "Chord deleted");
+      toast.show("ok", "האקורד נמחק");
     } catch (err) {
       toast.show("error", "Could not delete the chord",
         err instanceof ApiError ? err.message : String(err));
@@ -112,9 +116,9 @@ export function Song({ settings }: { settings: Settings | null }) {
         endTimeMs: Math.round(ms) + 2000,
       });
       await refresh();
-      toast.show("ok", "Chord added", "Click it to set the right symbol.");
+      toast.show("ok", "האקורד נוסף", "לחצו עליו כדי לבחור את הסימון הנכון.");
     } catch (err) {
-      toast.show("error", "Could not add a chord",
+      toast.show("error", "לא ניתן להוסיף אקורד",
         err instanceof ApiError ? err.message : String(err));
     }
   }
@@ -124,7 +128,7 @@ export function Song({ settings }: { settings: Settings | null }) {
       await api.patchWord(id, word.id, { text });
       await refresh();
     } catch (err) {
-      toast.show("error", "Could not save the word",
+      toast.show("error", "לא ניתן לשמור את המילה",
         err instanceof ApiError ? err.message : String(err));
     }
   }
@@ -133,9 +137,9 @@ export function Song({ settings }: { settings: Settings | null }) {
     try {
       await api.reanalyze(id, withLyrics);
       setProject((p) => (p ? { ...p, status: "analyzing" } : p));
-      toast.show("info", "Analysis restarted");
+      toast.show("info", "הניתוח הופעל מחדש");
     } catch (err) {
-      toast.show("error", "Could not restart the analysis",
+      toast.show("error", "לא ניתן להפעיל מחדש את הניתוח",
         err instanceof ApiError ? err.message : String(err));
     }
   }
@@ -144,9 +148,9 @@ export function Song({ settings }: { settings: Settings | null }) {
     return (
       <div className="mx-auto max-w-2xl px-5 py-24 text-center">
         <AlertTriangle size={28} className="mx-auto text-danger mb-4" />
-        <h1 className="text-xl font-bold text-ink">This song could not be opened</h1>
+        <h1 className="text-xl font-bold text-ink">לא ניתן לפתוח את השיר</h1>
         <p className="text-muted mt-2">{loadError}</p>
-        <Link to="/" className="btn-primary mt-6">Back to upload</Link>
+        <Link to="/" className="btn-primary mt-6">חזרה להעלאת שיר</Link>
       </div>
     );
   }
@@ -181,13 +185,13 @@ export function Song({ settings }: { settings: Settings | null }) {
             <div className="flex items-start gap-3">
               <AlertTriangle size={20} className="text-danger mt-0.5 shrink-0" />
               <div>
-                <h2 className="font-bold text-ink">The analysis did not finish</h2>
+                <h2 className="font-bold text-ink">הניתוח לא הסתיים</h2>
                 <p className="text-sm text-muted mt-1.5 break-words">
-                  {progress?.errorMessage ?? "The worker stopped before it produced a result."}
+                  {progress?.errorMessage ?? "תהליך הניתוח נעצר לפני שהפיק תוצאה."}
                 </p>
                 <button className="btn-outline mt-4" onClick={() => reanalyze(false)}>
                   <RefreshCw size={15} />
-                  Try again
+                  נסה שוב
                 </button>
               </div>
             </div>
@@ -204,7 +208,7 @@ export function Song({ settings }: { settings: Settings | null }) {
               <span className="text-3xl font-black text-ink tabular-nums">
                 {Math.round((progress?.progress ?? 0) * 100)}%
               </span>
-              <span className="text-sm text-muted">{progress?.message ?? "Starting up"}</span>
+              <span className="text-sm text-muted">{progress?.message ?? "מתחיל לפעול"}</span>
             </div>
 
             <div className="h-1.5 rounded-full bg-base overflow-hidden mb-6">
@@ -271,6 +275,8 @@ export function Song({ settings }: { settings: Settings | null }) {
             <span className="hidden sm:inline">{editMode ? "Done" : "Edit"}</span>
           </button>
 
+          <button className={simplifiedChords ? "btn-primary" : "btn-outline"} onClick={() => setSimplifiedChords((v) => !v)} title="הצגה פשוטה של האקורדים בלי לשנות את הנתונים המקוריים">{simplifiedChords ? "אקורדים מלאים" : "פישוט אקורדים"}</button>
+          <div className="flex items-center gap-1 rounded-xl border border-line bg-base p-0.5" aria-label="גודל התצוגה"><span className="px-2 text-xs text-muted">גודל</span><button className="btn-ghost !px-2 !py-1" onClick={() => setFontScale((v) => Math.max(0.8, Math.round((v - 0.1) * 10) / 10))} disabled={fontScale <= 0.8} aria-label="הקטנת גודל">א−</button><span className="min-w-10 text-center text-xs tabular-nums">{Math.round(fontScale * 100)}%</span><button className="btn-ghost !px-2 !py-1" onClick={() => setFontScale((v) => Math.min(1.6, Math.round((v + 0.1) * 10) / 10))} disabled={fontScale >= 1.6} aria-label="הגדלת גודל">א+</button></div>
           <ExportMenu projectId={project.id} />
         </div>
       </div>
@@ -280,7 +286,7 @@ export function Song({ settings }: { settings: Settings | null }) {
           <div className="panel p-4 mb-8 flex items-start gap-3">
             <Mic size={17} className="text-muted mt-0.5 shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-ink font-medium">No lyrics yet</p>
+              <p className="text-sm text-ink font-medium">עדיין אין מילים</p>
               <p className="text-xs text-muted mt-1 leading-relaxed">
                 The chords are here. To add the words, set up a transcription
                 service in settings, then run the analysis again.
@@ -289,7 +295,7 @@ export function Song({ settings }: { settings: Settings | null }) {
             {settings?.apiKeySet && settings.allowAudioUpload && (
               <button className="btn-outline !py-1.5 !px-3 text-xs shrink-0"
                       onClick={() => reanalyze(true)}>
-                Transcribe now
+                תמלול עכשיו
               </button>
             )}
           </div>
@@ -312,6 +318,8 @@ export function Song({ settings }: { settings: Settings | null }) {
           onDeleteChord={deleteChord}
           onAddChordAt={addChordAt}
           onEditWord={editWord}
+          simplified={simplifiedChords}
+          fontScale={fontScale}
         />
       </main>
 
